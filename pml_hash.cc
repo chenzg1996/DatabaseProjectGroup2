@@ -25,7 +25,7 @@ PMLHash::~PMLHash() {
  */
 void PMLHash::split() {
     // fill the split table
-
+	
     // fill the new table
 
     // update the next of metadata
@@ -42,7 +42,11 @@ void PMLHash::split() {
  * then calculate the index by N module
  */
 uint64_t PMLHash::hashFunc(const uint64_t &key, const size_t &hash_size) {
-
+	uint64_t index = key % hash_size;
+	if(index>=meta->next)
+		return index%(hash_size*pow(2,meta->level));
+	else
+		return index%(hash_size*pow(2,meta->level+1));
 }
 
 /**
@@ -53,7 +57,7 @@ uint64_t PMLHash::hashFunc(const uint64_t &key, const size_t &hash_size) {
  * @return {pm_table*}       : the virtual address of new overflow hash table
  */
 pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
-
+	
 }
 
 /**
@@ -70,7 +74,28 @@ pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
  * if the hash table is full then split is triggered
  */
 int PMLHash::insert(const uint64_t &key, const uint64_t &value) {
-
+	uint64_t index = hashFunc(key, HASH_SIZE);
+	if((table_arr+index)->fill_num < TABLE_SIZE){
+		(table_arr+index)->kv_arr[(table_arr+index)->fill_num]->key = key;
+		(table_arr+index)->kv_arr[(table_arr+index)->fill_num]->value = value;
+		(table_arr+index)->fill_num++;
+	}
+	else{
+		if(overflow_addr+meta->overflow_num == (table_arr+index)->next_offset){
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->key = key;
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->value = value;
+			overflow_addr+meta->overflow_num->fill_num++;
+		}
+		else{
+			meta->overflow_num++;
+			table_arr+index->next_offset = newOverflowTable(meta->overflow_num);
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->key = key;
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->value = value;
+			overflow_addr+meta->overflow_num->fill_num++;
+			
+		}
+		split();
+	}
 }
 
 /**
@@ -83,7 +108,7 @@ int PMLHash::insert(const uint64_t &key, const uint64_t &value) {
  * search the target entry and return the value
  */
 int PMLHash::search(const uint64_t &key, uint64_t &value) {
-
+	uint64_t index = hashFunc(key,meta->size);
 }
 
 /**
@@ -96,7 +121,7 @@ int PMLHash::search(const uint64_t &key, uint64_t &value) {
  * if the overflow table is empty, remove it from hash
  */
 int PMLHash::remove(const uint64_t &key) {
-
+	
 }
 
 /**
