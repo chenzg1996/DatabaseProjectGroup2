@@ -20,8 +20,10 @@ PMLHash::PMLHash(const char* file_path) {
 	pmem_persist(start_addr, mapped_len);
 	uint64_t MAX = (FILE_SIZE/2 - sizeof(metadata)) / sizeof(pm_table);
 	table_arr = new pm_table[MAX];
-	for(uint64_t i=0; i<MAX; i++)
+	for(uint64_t i=0; i<MAX; i++){
 		table_arr[i].next_offset = -1;
+		table_arr[i].fill_num = 0;
+	}
 	pmem_memcpy_persist(start_addr, this->table_arr, mapped_len);
 	overflow_addr = start_addr + FILE_SIZE / 2;
 }
@@ -97,7 +99,9 @@ pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
 	pm_table* a = new pm_table;           //maybe need to think!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	pm_table* b = (pm_table*)(start_addr+offset);
 	b = a;
+	b->fill_num = 0;
 	meta->overflow_num++;
+	overflow_addr += sizeof(pm_table);
 	return b;
 }
 
@@ -193,7 +197,10 @@ int PMLHash::remove(const uint64_t &key) {
 		}
 	}
 	if(table_arr[index].next_offset>=0){
+		uint64_t flag = 0;
 		pm_table* p = (pm_table*)(start_addr + table_arr[index].next_offset);    //overflow bucket
+		if(p->fill_num==1)
+			flag = 1;
 		if(j==table_arr[index].fill_num){         //the entry that we want to remove is in overflow bucket
 			j = 0;
 			for(uint64_t i=0; i<p->fill_num; i++){
@@ -206,8 +213,12 @@ int PMLHash::remove(const uint64_t &key) {
 			if(j==p->fill_num){
 				return -1;
 			}
-			else
+			else{
+				if(flag){
+					table_arr[index].next_offset = -1;
+				}
 				return 0;
+			}
 		}
 		else{
 			table_arr[index].kv_arr[j].key = p->kv_arr[0].key;
@@ -217,6 +228,9 @@ int PMLHash::remove(const uint64_t &key) {
 				p->kv_arr[j].key = p->kv_arr[i].key;
 				p->kv_arr[j].value = p->kv_arr[i].value;
 				j++;
+			}
+			if(flag){
+				table_arr[index].next_offset = -1;
 			}
 			return 0; 		//always success
 		}
