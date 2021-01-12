@@ -1,5 +1,8 @@
 #include "pml_hash.h"
+<<<<<<< HEAD
 #include <math.h>
+=======
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 /**
  * PMLHash::PMLHash 
  * 
@@ -8,6 +11,7 @@
  * if the data file does not exist, create it and initial the hash
  */
 PMLHash::PMLHash(const char* file_path) {
+<<<<<<< HEAD
 	size_t mapped_len;							//if the data file does not exist, create it and initial the hash
     uint64_t is_pmem;
 	start_addr = pmem_map_file(file_path, FILE_SIZE, PMEM_FILE_CREATE, 0666, &mapped_len, &is_pmem);
@@ -26,6 +30,9 @@ PMLHash::PMLHash(const char* file_path) {
 	}
 	pmem_memcpy_persist(start_addr, this->table_arr, mapped_len);
 	overflow_addr = start_addr + FILE_SIZE / 2;
+=======
+
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 /**
  * PMLHash::~PMLHash 
@@ -43,6 +50,7 @@ PMLHash::~PMLHash() {
  */
 void PMLHash::split() {
     // fill the split table
+<<<<<<< HEAD
     // update the next of metadata
     pm_table* p = table_arr + meta->next; //jilu fenlie dian
 	meta->next++;//fenlie dian houyi
@@ -65,6 +73,13 @@ void PMLHash::split() {
 		meta->level++;
 		meta->next = 0;
 	}
+=======
+	
+    // fill the new table
+
+    // update the next of metadata
+
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 /**
  * PMLHash 
@@ -78,6 +93,7 @@ void PMLHash::split() {
  */
 uint64_t PMLHash::hashFunc(const uint64_t &key, const size_t &hash_size) {
 	uint64_t index = key % hash_size;
+<<<<<<< HEAD
 	uint64_t a;
 	if(index>=meta->next){
 		a = hash_size * pow(2, meta->level);
@@ -86,6 +102,12 @@ uint64_t PMLHash::hashFunc(const uint64_t &key, const size_t &hash_size) {
 		a = hash_size * pow(2, meta->level + 1);
 	}
 		return key%a;
+=======
+	if(index>=meta->next)
+		return index%(hash_size*pow(2,meta->level));
+	else
+		return index%(hash_size*pow(2,meta->level+1));
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 
 /**
@@ -96,6 +118,7 @@ uint64_t PMLHash::hashFunc(const uint64_t &key, const size_t &hash_size) {
  * @return {pm_table*}       : the virtual address of new overflow hash table
  */
 pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
+<<<<<<< HEAD
 	pm_table* a = new pm_table;           //maybe need to think!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	pm_table* b = (pm_table*)(start_addr+offset);
 	b = a;
@@ -103,6 +126,9 @@ pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
 	meta->overflow_num++;
 	overflow_addr += sizeof(pm_table);
 	return b;
+=======
+	
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 
 /**
@@ -120,6 +146,7 @@ pm_table* PMLHash::newOverflowTable(uint64_t &offset) {
  */
 int PMLHash::insert(const uint64_t &key, const uint64_t &value) {
 	uint64_t index = hashFunc(key, HASH_SIZE);
+<<<<<<< HEAD
 	if(table_arr[index].fill_num < TABLE_SIZE){										//tong mei man
 		table_arr[index].kv_arr[table_arr[index].fill_num].key = key;
 		table_arr[index].kv_arr[table_arr[index].fill_num].value = value;
@@ -146,6 +173,29 @@ int PMLHash::insert(const uint64_t &key, const uint64_t &value) {
 		split();
 	}
 	return -1;
+=======
+	if((table_arr+index)->fill_num < TABLE_SIZE){
+		(table_arr+index)->kv_arr[(table_arr+index)->fill_num]->key = key;
+		(table_arr+index)->kv_arr[(table_arr+index)->fill_num]->value = value;
+		(table_arr+index)->fill_num++;
+	}
+	else{
+		if(overflow_addr+meta->overflow_num == (table_arr+index)->next_offset){
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->key = key;
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->value = value;
+			overflow_addr+meta->overflow_num->fill_num++;
+		}
+		else{
+			meta->overflow_num++;
+			table_arr+index->next_offset = newOverflowTable(meta->overflow_num);
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->key = key;
+			overflow_addr+meta->overflow_num->kv_arr[overflow_addr+meta->overflow_num->fill_num]->value = value;
+			overflow_addr+meta->overflow_num->fill_num++;
+			
+		}
+		split();
+	}
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 
 /**
@@ -157,6 +207,7 @@ int PMLHash::insert(const uint64_t &key, const uint64_t &value) {
  * 
  * search the target entry and return the value
  */
+<<<<<<< HEAD
 int PMLHash::search(const uint64_t &key, uint64_t &value){
 	uint64_t index = hashFunc(key, HASH_SIZE);
 	for(uint64_t i=0; i<table_arr[index].fill_num; i++){
@@ -175,6 +226,10 @@ int PMLHash::search(const uint64_t &key, uint64_t &value){
 		}
 	}
 	return -1;
+=======
+int PMLHash::search(const uint64_t &key, uint64_t &value) {
+	uint64_t index = hashFunc(key,meta->size);
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 
 /**
@@ -187,6 +242,7 @@ int PMLHash::search(const uint64_t &key, uint64_t &value){
  * if the overflow table is empty, remove it from hash
  */
 int PMLHash::remove(const uint64_t &key) {
+<<<<<<< HEAD
 	uint64_t index = hashFunc(key, HASH_SIZE);
 	uint64_t j = 0;
 	for(uint64_t i=0; i<table_arr[index].fill_num; i++){
@@ -241,6 +297,9 @@ int PMLHash::remove(const uint64_t &key) {
 		else
 			return 0;
 	}
+=======
+	
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
 
 /**
@@ -253,6 +312,7 @@ int PMLHash::remove(const uint64_t &key) {
  * update an existing entry
  */
 int PMLHash::update(const uint64_t &key, const uint64_t &value) {
+<<<<<<< HEAD
 	uint64_t index = hashFunc(key, HASH_SIZE);
 	for(uint64_t i=0; i<table_arr[index].fill_num; i++){
 		if(table_arr[index].kv_arr[i].key==key){
@@ -270,4 +330,7 @@ int PMLHash::update(const uint64_t &key, const uint64_t &value) {
 		}
 	}
 	return -1;
+=======
+
+>>>>>>> 7ba733c5ba0761a7179322100798d7e6e28f86d3
 }
